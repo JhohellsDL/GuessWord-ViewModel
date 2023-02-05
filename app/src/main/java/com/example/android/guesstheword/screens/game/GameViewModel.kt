@@ -10,8 +10,18 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
 
-class GameViewModel : ViewModel() {
+private val CORRECT_BUZZ_PATTERN = longArrayOf(100, 100, 100, 100, 100, 100)
+private val PANIC_BUZZ_PATTERN = longArrayOf(0, 200)
+private val GAME_OVER_BUZZ_PATTERN = longArrayOf(0, 2000)
+private val NO_BUZZ_PATTERN = longArrayOf(0)
 
+class GameViewModel : ViewModel() {
+    enum class BuzzType(val pattern: LongArray) {
+        CORRECT(CORRECT_BUZZ_PATTERN),
+        GAME_OVER(GAME_OVER_BUZZ_PATTERN),
+        COUNTDOWN_PANIC(PANIC_BUZZ_PATTERN),
+        NO_BUZZ(NO_BUZZ_PATTERN)
+    }
     companion object {
         // These represent different important times
         // This is when the game is over
@@ -42,6 +52,10 @@ class GameViewModel : ViewModel() {
     val currentTime : LiveData<Long>
         get() = _currentTime
 
+    private var _zumbido = MutableLiveData<BuzzType>()
+    val zumbido : LiveData<BuzzType>
+        get() = _zumbido
+
     val currentTimeString = Transformations.map(currentTime) {
         DateUtils.formatElapsedTime(it)
     }
@@ -65,6 +79,8 @@ class GameViewModel : ViewModel() {
             }
 
             override fun onFinish() {
+                _currentTime.value = DONE
+                _zumbido.value = BuzzType.GAME_OVER
                 _eventGameFinish.value = true
             }
         }
@@ -121,9 +137,17 @@ class GameViewModel : ViewModel() {
     fun onCorrect() {
         _score.value = score.value!! + 1
         nextWord()
+        onBuzzPanic()
     }
 
     fun onGameFinishComplete() {
         _eventGameFinish.value = false
+    }
+
+    fun onBuzzComplete(){
+        _zumbido.value = BuzzType.NO_BUZZ
+    }
+    fun onBuzzPanic(){
+        _zumbido.value = BuzzType.CORRECT
     }
 }
